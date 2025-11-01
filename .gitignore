@@ -5,8 +5,6 @@
 venv/
 .venv/
 
-# directorio de seguridad 
-security/
 
 # Archivo .env 
 .env
