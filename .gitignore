@@ -1,0 +1,18 @@
+# configuración del vs code 
+.vscode/
+
+# directorio de entorno virtual 
+venv/
+.venv/
+
+# directorio de seguridad 
+security/
+
+# Archivo .env 
+.env
+
+# cache de python 
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
