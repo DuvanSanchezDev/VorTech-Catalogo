@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class Catalogo(BaseModel): 
-    id: int
+    id: int | None = None  # Opcional, se genera en la BD
     nombre: str
     imagen: str
     descripcion: str
@@ -9,10 +9,12 @@ class Catalogo(BaseModel):
     categoria: str  
     precio: int | None = None
     unidades: str | None = None
+    dispositivo: str 
+    
     
 class CaracteristicasMovil(BaseModel): 
-    id: int
-    catalogo_id: int
+    id: int | None = None  # Opcional, se genera en la BD
+    catalogo_id: int | None = None  # Opcional, se asigna después
     pantalla: str 
     procesador: str
     memoria_ram: str
@@ -22,8 +24,8 @@ class CaracteristicasMovil(BaseModel):
     conectividad: str 
 
 class CaracteristicasLaptop(BaseModel):
-    id: int
-    catalogo_id: int
+    id: int | None = None  # Opcional, se genera en la BD
+    catalogo_id: int | None = None  # Opcional, se asigna después
     pantalla: str 
     procesador: str
     memoria_ram: str
