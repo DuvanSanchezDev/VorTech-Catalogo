@@ -1,75 +1,53 @@
 from typing import List, Dict, Any
-from models.catalogo_modelo import Catalogo, CaracteristicasMovil, CaracteristicasLaptop
 
-async def ensamblar_catalogo_con_caracteristicas(
-    catalogos: List[Catalogo],
-    caracteristicas_moviles: List[CaracteristicasMovil],
-    caracteristicas_laptops: List[CaracteristicasLaptop]
+# Nota: Ya no necesitamos los modelos CaracteristicasMovil/Laptop aquí, solo Catalogo
+# La entrada son los diccionarios crudos de Supabase
+
+async def ensamblar_catalogo_con_formato_final(
+    datos_supabase_anidados: List[Dict[str, Any]]
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Ensambla el JSON final combinando catálogos con sus características.
+    Transforma la estructura anidada de Supabase a un formato JSON plano 
+    con las características consolidadas.
     
     Args:
-        catalogos: Lista de productos del catálogo
-        caracteristicas_moviles: Lista de características de móviles
-        caracteristicas_laptops: Lista de características de laptops
+        datos_supabase_anidados: Lista de diccionarios devueltos directamente por retornar_catalogo.
     
     Returns:
-        Diccionario con la estructura del JSON de respuesta
+        Diccionario con la estructura del JSON de respuesta {"productos": [...]}.
     """
     
-    # Crear diccionarios para búsqueda rápida por catalogo_id
-    caracteristicas_moviles_dict = {
-        c.catalogo_id: c for c in caracteristicas_moviles
-    }
-    caracteristicas_laptops_dict = {
-        c.catalogo_id: c for c in caracteristicas_laptops
-    }
+    productos_finales = []
     
-    productos = []
+    for item in datos_supabase_anidados:
+        # 1. Crear la estructura base del producto (copiando todos los campos)
+        producto = item.copy()
+        
+        # 2. Inicializar el diccionario de características
+        caracteristicas = {}
+        
+        # 3. Consolidar las características del móvil
+        moviles_data = producto.pop("caracteristicas_movil", None)
+        if moviles_data and isinstance(moviles_data, dict):
+            # Usamos update para mover todos los pares clave-valor (excepto id/catalogo_id)
+            for k, v in moviles_data.items():
+                if k not in ["id", "catalogo_id"]:
+                    caracteristicas[k] = v
+        
+        # 4. Consolidar las características del laptop (si no es móvil)
+        laptops_data = producto.pop("caracteristicas_laptop", None)
+        if laptops_data and isinstance(laptops_data, dict):
+            # Usamos update para mover todos los pares clave-valor (excepto id/catalogo_id)
+            for k, v in laptops_data.items():
+                if k not in ["id", "catalogo_id"]:
+                    caracteristicas[k] = v
+
+        # 5. Insertar las características consolidadas en el producto final
+        producto["caracteristicas"] = caracteristicas
+        
+        # 6. (Opcional) Limpiar cualquier otro campo que no necesites en la raíz (ej. catalogo_id)
+        producto.pop("catalogo_id", None)
+        
+        productos_finales.append(producto)
     
-    for catalogo in catalogos:
-        # Estructura base del producto (sin incluir 'dispositivo')
-        producto = {
-            "id": catalogo.id,
-            "nombre": catalogo.nombre,
-            "imagen": catalogo.imagen,
-            "descripcion": catalogo.descripcion,
-            "marca": catalogo.marca,
-            "categoria": catalogo.categoria,
-            "precio": catalogo.precio,
-            "unidades": catalogo.unidades
-        }
-        
-        # Agregar características según el tipo de dispositivo
-        if catalogo.dispositivo == "movil" and catalogo.id in caracteristicas_moviles_dict:
-            carac = caracteristicas_moviles_dict[catalogo.id]
-            producto["caracteristicas"] = {
-                "pantalla": carac.pantalla,
-                "procesador": carac.procesador,
-                "memoria_ram": carac.memoria_ram,
-                "almacenamiento": carac.almacenamiento,
-                "camara": carac.camara,
-                "bateria": carac.bateria,
-                "conectividad": carac.conectividad
-            }
-        
-        elif catalogo.dispositivo == "laptop" and catalogo.id in caracteristicas_laptops_dict:
-            carac = caracteristicas_laptops_dict[catalogo.id]
-            producto["caracteristicas"] = {
-                "pantalla": carac.pantalla,
-                "procesador": carac.procesador,
-                "memoria_ram": carac.memoria_ram,
-                "almacenamiento": carac.almacenamiento,
-                "tipo_almacenamiento": carac.tipo_almacenamiento,
-                "tarjeta_grafica": carac.tarjeta_grafica,
-                "bateria": carac.bateria,
-                "conectividad": carac.conectividad
-            }
-        else:
-            # Si no hay características o es un tipo desconocido
-            producto["caracteristicas"] = {}
-        
-        productos.append(producto)
-    
-    return {"productos": productos}
+    return {"productos": productos_finales}

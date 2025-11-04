@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional, List
 from models.catalogo_modelo import Catalogo, CaracteristicasMovil, CaracteristicasLaptop
-from services.agregar_catalogo import agregar_producto 
+from services.agregar_catalogo import agregar_producto
+from services.leer_catalogo import retornar_catalogo
+from utils.construccion_json import ensamblar_catalogo_con_formato_final
 
 router = APIRouter(
     prefix="/catalogo",
@@ -15,14 +18,35 @@ async def leer_catalogo():
 
 #---Leer prductos con filtros---#
 @router.get("/productos")
-async def catalogo(marca: list[str] = [], 
-                    categoria: list[str] = [], 
-                    precio_min : int | None = None, 
-                    precio_max: int | None = None, 
-                    ordenar_precio: str | None = None, 
-                    ordenar_alfabeticamente: str | None = None, 
-                    tipo_dispositivo: str | None = None):
-    return "" 
+async def obtener_catalogo_completo(
+    marca: Optional[List[str]] = Query(None),
+    categoria: Optional[List[str]] = Query(None),
+    precio_min: Optional[int] = None,
+    precio_max: Optional[int] = None,
+    ordenar_precio: Optional[str] = None, # 'asc' o 'desc'
+    ordenar_alfabeticamente: Optional[str] = None, # 'asc' o 'desc'
+    tipo_dispositivo: Optional[str] = None
+):
+    # 1. LLAMADA A LA FUNCIÓN DE CONSULTA (datos crudos y anidados)
+    # Esta función ya trae las características de Supabase
+    datos_supabase_anidados = await retornar_catalogo(
+        marca=marca,
+        categoria=categoria,
+        precio_min=precio_min,
+        precio_max=precio_max,
+        ordenar_precio=ordenar_precio,
+        ordenar_alfabeticamente=ordenar_alfabeticamente,
+        tipo_dispositivo=tipo_dispositivo
+    )
+
+    # 2. LLAMADA A LA FUNCIÓN DE ENSAMBLAJE (formato final deseado)
+    # Esta función transforma los datos anidados al JSON plano que quieres.
+    resultado_json_final = await ensamblar_catalogo_con_formato_final(
+        datos_supabase_anidados
+    )
+    
+    # 3. RETORNO DE LA RESPUESTA
+    return resultado_json_final
 
 
 #---Agregar un producto---#    
